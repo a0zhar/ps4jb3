@@ -1,17 +1,17 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/param.h>
-#include <sys/cpuset.h>
-#include <netinet/in.h>
-#include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
-#include <unistd.h> 
-#include <time.h>
-#include <errno.h>
-#include <stddef.h>
-#include <sys/mman.h>
-#include <librop/pthread_create.h>
-#include <ps4/errno.h>
+#include <sys/types.h>             // Data types
+#include <sys/socket.h>            // Socket-related functions and constants
+#include <sys/param.h>             // ...
+#include <sys/cpuset.h>            // ...
+#include <netinet/in.h>            // Internet address family (IPv6)
+#include <netinet/ip6.h>           // IPv6 header structure
+#include <netinet6/ip6_var.h>      // IPv6 variables and structures
+#include <unistd.h>                // POSIX API for system calls and constants
+#include <time.h>                  // ...
+#include <errno.h>                 // ...
+#include <stddef.h>                // Standard definitions and types
+#include <sys/mman.h>              // ...
+#include <librop/pthread_create.h> // ps4 - pthread_create
+#include <ps4/errno.h>             // ...
 
 // TODO: Implement some kind of way to allow for remote debugging 
 // in the form of sending messages from the ps4 to our pc...
