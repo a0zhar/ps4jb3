@@ -1,4 +1,4 @@
-use64
+use64 ; Specify that the assembly code is 64-bit...
 
 entry:
   push rsi
@@ -29,10 +29,10 @@ kernel_entry:
   pop rsi
   test rsi, rsi
   jz .skip_closeup
-  mov rax, [gs:0]     ; thread
-  mov rax, [rax+8]    ; td_proc
-  mov rax, [rax+0x48] ; p_fd
-  mov rdx, [rax]      ; fd_ofiles
+  mov rax, [gs:0]     ; thread    - The GS segment register is often used to access the thread-specific data, so this instruction is likely fetching a pointer to the current thread's data structure.
+  mov rax, [rax+8]    ; td_proc   - Assuming the thread data structure, this instruction appears to access the associated process structure pointer, which is usually stored at an offset within the thread structure.
+  mov rax, [rax+0x48] ; p_fd      - This instruction is likely fetching a pointer to the process's file descriptor table (struct filedesc* p_fd), and 0x48 is the offset within the process structure where this pointer is typically found.
+  mov rdx, [rax]      ; fd_ofiles - It seems like this instruction is accessing the `fd_ofiles` field within the file descriptor table, which is often a pointer to an array of pointers to open file structures (struct file** fd_ofiles).
   mov rcx, 512
 .closeup_loop:
   lodsd
