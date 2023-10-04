@@ -78,15 +78,16 @@ int get_pktinfo(int s, char* buf) {
 
 void* use_thread(void* arg) {
     struct opaque* o = (struct opaque*)arg;
-    char buf[CMSG_SPACE(sizeof(int))];    // Create a buffer to hold control messages
+    // Create a buffer to hold control messages with enough space for an integer
+    char buf[CMSG_SPACE(sizeof(int))];
     // Create a control message structure for IPv6 traffic class information.
     // This structure will be used to specify that we are working with the IPv6 protocol
     // and need to manipulate the traffic class (TCLASS) as ancillary data.
     struct cmsghdr* cmsg = (struct cmsghdr*)buf;
-    cmsg->cmsg_len   = CMSG_LEN(sizeof(int));
-    cmsg->cmsg_level = IPPROTO_IPV6; // IPv6 protocol level
-    cmsg->cmsg_type  = IPV6_TCLASS;  // IPv6 traffic class type
-    // Given a pointer to the control message header "cmsg", set its data field to 0
+    cmsg->cmsg_len   = CMSG_LEN(sizeof(int)); // Set the length of the control message to include an integer
+    cmsg->cmsg_level = IPPROTO_IPV6;          // Set the protocol level to IPPROTO_IPV6 (IPv6 protocol)
+    cmsg->cmsg_type  = IPV6_TCLASS;           // Set the control message type to IPV6_TCLASS (IPv6 traffic class type)
+    // Given a pointer to the control message header "cmsg," set its data field to 0
     *(int*)CMSG_DATA(cmsg) = 0;
     while (!o->triggered && get_tclass_2(o->master_sock) != TCLASS_SPRAY)
         if (set_pktopts(o->master_sock, buf, sizeof(buf)))
