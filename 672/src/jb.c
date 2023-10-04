@@ -129,10 +129,14 @@ void trigger_uaf(struct opaque* o) {
 int build_rthdr_msg(char* buf, int size) {
     int len = ((size / 8) - 1) & ~1;
     size = (len + 1) * 8;
+    // Create a new Routing Header structure instance in the given buffer.
     struct ip6_rthdr* rthdr = (struct ip6_rthdr*)buf;
-    rthdr->ip6r_nxt = 0;
-    rthdr->ip6r_len = len;
+    rthdr->ip6r_nxt = 0;   // Set the next header value to 0 (no additional headers follow).
+    rthdr->ip6r_len = len; // length in units of 8 octets
+    // Set the type used in our routing header to IPV6_RTHDR_TYPE_0. 
+    // This allows a variable number of segments, ranging from 0-127.
     rthdr->ip6r_type = IPV6_RTHDR_TYPE_0;
+    // Calculate and set the number of segments left in the routing header.
     rthdr->ip6r_segleft = rthdr->ip6r_len / 2;
     return size;
 }
