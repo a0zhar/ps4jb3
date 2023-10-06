@@ -1,5 +1,5 @@
-; Specify that the assembly code is 64-bit...
-use64
+use64 ; 64-bit Assembly Code
+
 
 entry:
   push rsi                    ; Preserve rsi register
