@@ -195,7 +195,23 @@ void sidt(unsigned long long* addr, unsigned short* size) {
     *size = *(unsigned short*)buf;
     *addr = *(unsigned long long*)(buf + 2);
 }
-
+// THESE MIGHT BE WRONG--------------------------------
+void (*enter_krop)(void);        // Function pointer to the krop shellcode
+extern uint64_t krop_idt_base;   // the base address of the Interrupt Descriptor Table (IDT)
+extern uint64_t krop_jmp_crash;  // the shellcode to perform a crash via jump 
+extern uint64_t krop_ud1;        // the shellcode to cause an invalid opcode exception (UD1 instruction)
+extern uint64_t krop_ud2;        // the shellcode to cause an invalid opcode exception (UD2 instruction)
+extern uint64_t krop_read_cr0;   // the shellcode to read the CR0 control register 
+extern uint64_t krop_read_cr0_2; // the shellcode to read the CR0 control register again 
+extern uint64_t krop_write_cr0;  // the shellcode to write to the CR0 control register 
+extern uint64_t krop_c3bak1;     // the shellcode to perform a syscall (SYSENTER)
+extern uint64_t krop_c3bak2;     // the shellcode to perform a syscall (SYSENTER)
+extern uint64_t krop_kernel_base;// the kernel base address 
+extern uint64_t krop_master_sock;// the master socket 
+extern char spray_bin[];         // the binary data used in the spray
+extern char spray_end[];         // the end of the binary data used in the spray 
+//--------------------
+/* 
 void (*enter_krop)(void);
 extern uint64_t krop_idt_base;
 extern uint64_t krop_jmp_crash;
@@ -210,7 +226,7 @@ extern uint64_t krop_kernel_base;
 extern uint64_t krop_master_sock;
 extern char spray_bin[];
 extern char spray_end[];
-
+*/
 struct spray_opaque {
     int cpu;
     void* spray_map;
