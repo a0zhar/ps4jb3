@@ -1,6 +1,4 @@
 use64 ; 64-bit Assembly Code
-
-
 entry:
   push rsi                    ; Preserve rsi register
   push rdi                    ; Preserve rdi register
@@ -41,5 +39,5 @@ kernel_entry:
   loop .closeup_loop        ; Loop until rcx is zero
 .skip_closeup:
   xor eax, eax              ; Clear eax (return value)
-  ret                       ; Return to caller
+  ret                       ; Return
 align 8
