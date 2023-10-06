@@ -34,7 +34,7 @@ The calling convention is essentially CDECL, with `call` being implemented as `p
 
 The compiler detects whether a given function call is a rop-to-rop or rop-to-native call, and converts the calling convention if necessary. For native-to-rop calls, the conversion has to be performed explicitly:
 
-```
+```C
 #include <librop/extcall.h>
 
 void native_func(..., void(*)(...), void* opaque, ...);
