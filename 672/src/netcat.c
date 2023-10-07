@@ -7,18 +7,28 @@
 #include <unistd.h>
 #include <time.h>
 
-#define MIRA_BLOB_SIZE 131072
+/*Return values meanings (main_ret):
+    2 - socket() failed
+    3 - bind() failed
+    4 - listen() failed
+    5 - accept() failed
+    6 - mmap() failed
+    9 - success
+    1 - setuid(0) work
+*/
+#define BLOBMAXSIZE 131072
 
-// Replacement for using memcpy and when doing for-loops to copy data
-// using a function makes it better looking
-void _custom_memcpy(const void* _Src, void* _Dst, int _Len) {
-    typedef const unsigned char* _PUCCHAR;
-    typedef unsigned char* _PUCHAR;
-    _PUCCHAR srcBuf = (_PUCCHAR)_Src;
-    _PUCHAR  dstBuf = (_PUCHAR)_Dst;
+// We currently only can copy data byte by byte but im working on, implementing 
+// a feature (for larger lengths) where it copyies data in chunks
+// Replacement for memcpy
+void _memcpy_(const void* _Src, void* _Dst, size_t _Len) {
+    typedef unsigned char* _UCHAR;
+    const _UCHAR srcBuf = (const _UCHAR)_Src;
+    _UCHAR dstBuf = (_UCHAR)_Dst;
+
     // Copy the contents of the source buffer into the 
     // destination byte by byte.
-    for (int i = 0; i < _Len; i++)
+    for (size_t i = 0; i < _Len; i++)
         dstBuf[i] = srcBuf[i];
 }
 
@@ -49,28 +59,40 @@ void* sender_thread(void* _) {
 
 int main() {
     if (setuid(0)) return 1;
-    // Create a memory mapping with (read, write, and execute) 
-    // permissions using mmap().
-    char* mapping = mmap(NULL, MIRA_BLOB_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    // Create a memory mapping with (read, write, and execute) permissions.
+    char* mapping = mmap(NULL, BLOBMAXSIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (mapping == MAP_FAILED)
+        return 6;
     // Retrieve the payload data from the JS variable.
     char* mira_blob = __builtin_gadget_addr("$(window.mira_blob||0)");
+    // If the payload is not present inside window.mira_blob, 
+    // set up a server to receive it.
     if (!mira_blob) {
-        // If the payload is not present inside window.mira_blob, 
-        // set up a server to receive it.
         int q = socket(AF_INET, SOCK_STREAM, 0);
-        if (q < 0) return 1;
+        if (q < 0) return 2;
+
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = 0;
         addr.sin_port = 0x3c23; // htons(9020)
 
-        bind(q, &addr, sizeof(addr));
-        listen(q, 1); // listen for connections on the socket (q)
-
+        if (bind(q, &addr, sizeof(addr)) != 0) {
+            close(q);
+            return 3;
+        }
+        // listen for connections on the socket (q)
+        if (listen(q, 1) != 0) {
+            close(q);
+            return 4;
+        }
         // Accept incoming connections on the socket (q)
         int q2 = accept(q, NULL, NULL);
+        if (q2 < 0) {
+            close(q);
+            return 5;
+        }
         char* pMapped = mapping;
-        int len = MIRA_BLOB_SIZE;
+        int len = BLOBMAXSIZE;
 
         // Receive the payload data.
         while (len) {
@@ -81,11 +103,13 @@ int main() {
             pMapped += bytesRead;// Update position in mapped space
             len -= bytesRead;    // Update number of bytes left
         }
-
-    } else _custom_memcpy(mira_blob, mapping, MIRA_BLOB_SIZE);
+        // Perform cleanup of sockets
+        close(q2);
+        close(q);
+    } else _memcpy_(mira_blob, mapping, BLOBMAXSIZE);
 
     int sender[512];
     pthread_create(sender, NULL, sender_thread, NULL);
     rop_call_funcptr(mapping);
-    return 0;
+    return 9;
 }
