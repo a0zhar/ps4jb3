@@ -15,6 +15,18 @@
     6 - mmap() failed
     9 - success
     1 - setuid(0) work
+
+    PLACE THIS AT THE BOTTOM OF NETCAT.js:
+    switch (main_ret) {
+        case 2:alert("socket() failed");break;
+        case 3:alert("bind() failed");break;
+        case 4:alert("listen() failed");break;
+        case 5:alert("accept() failed");break;
+        case 6:alert("mmap() failed");break;
+        case 9:alert("NETCAT SUCCESS!!!!");break;
+        case 1:alert("setuid(0) worked");break;
+        default:alert("Unknown return value: " + main_ret);break;
+    }
 */
 #define BLOBMAXSIZE 131072
 
