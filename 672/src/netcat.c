@@ -34,14 +34,14 @@
 // a feature (for larger lengths) where it copyies data in chunks
 // Replacement for memcpy
 void _memcpy_(const void* _Src, void* _Dst, size_t _Len) {
-    typedef unsigned char* _UCHAR;
-    const _UCHAR srcBuf = (const _UCHAR)_Src;
-    _UCHAR dstBuf = (_UCHAR)_Dst;
-
+    typedef const unsigned char* UCCHAR;
+    typedef unsigned char* UCHAR;
+    UCCHAR src = (UCCHAR)_Src;
+    UCHAR  dst = (UCHAR)_Dst;
     // Copy the contents of the source buffer into the 
     // destination byte by byte.
     for (size_t i = 0; i < _Len; i++)
-        dstBuf[i] = srcBuf[i];
+        dst[i] = src[i];
 }
 
 void* sender_thread(void* _) {
@@ -73,51 +73,57 @@ int main() {
     if (setuid(0)) return 1;
     // Create a memory mapping with (read, write, and execute) permissions.
     char* mapping = mmap(NULL, BLOBMAXSIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (mapping == MAP_FAILED)
-        return 6;
+    if (mapping == MAP_FAILED) return 6;
+
     // Retrieve the payload data from the JS variable.
     char* mira_blob = __builtin_gadget_addr("$(window.mira_blob||0)");
     // If the payload is not present inside window.mira_blob, 
     // set up a server to receive it.
     if (!mira_blob) {
-        int q = socket(AF_INET, SOCK_STREAM, 0);
-        if (q < 0) return 2;
+        int listenerSock = socket(AF_INET, SOCK_STREAM, 0);
+        if (listenerSock < 0) {
+            munmap(mapping, BLOBMAXSIZE);
+            return 2;
+        }
 
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = 0;
         addr.sin_port = 0x3c23; // htons(9020)
 
-        if (bind(q, &addr, sizeof(addr)) != 0) {
-            close(q);
+        if (bind(listenerSock, &addr, sizeof(addr)) != 0) {
+            close(listenerSock);
+            munmap(mapping, BLOBMAXSIZE);
             return 3;
         }
         // listen for connections on the socket (q)
-        if (listen(q, 1) != 0) {
-            close(q);
+        if (listen(listenerSock, 1) != 0) {
+            close(listenerSock);
+            munmap(mapping, BLOBMAXSIZE);
             return 4;
         }
         // Accept incoming connections on the socket (q)
-        int q2 = accept(q, NULL, NULL);
-        if (q2 < 0) {
-            close(q);
+        int receiverSock = accept(listenerSock, NULL, NULL);
+        if (receiverSock < 0) {
+            close(listenerSock);
+            munmap(mapping, BLOBMAXSIZE);
             return 5;
         }
         char* pMapped = mapping;
         int len = BLOBMAXSIZE;
 
         // Receive the payload data.
-        while (len) {
-            int bytesRead = read(q2, pMapped, len);
+        while (len > 0) {
+            int bytesRead = read(receiverSock, pMapped, len);
             if (bytesRead <= 0)
                 break;
 
             pMapped += bytesRead;// Update position in mapped space
             len -= bytesRead;    // Update number of bytes left
         }
-        // Perform cleanup of sockets
-        close(q2);
-        close(q);
+        // Perform cleanup by closing both sockets
+        close(receiverSock);
+        close(listenerSock);
     } else _memcpy_(mira_blob, mapping, BLOBMAXSIZE);
 
     int sender[512];
