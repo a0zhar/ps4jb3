@@ -9,19 +9,36 @@
 #define BUFFER_INIT_SIZE 8
 
 Buffer* make_buffer() {
+    // Create a new Buffer instance
     Buffer* r = malloc(sizeof(Buffer));
+    if (r == NULL) return NULL;
+
+    // Allocate memory for the body of buffer
     r->body = malloc(BUFFER_INIT_SIZE);
+    if (r->body == NULL) {
+        free(r);
+        return NULL;
+    }
+    // Initialize the nalloc (number of allocated ?) to the value used when allocating body
+    // and the len to 0
     r->nalloc = BUFFER_INIT_SIZE;
     r->len = 0;
+    // Return that buffer
     return r;
 }
 
-static void realloc_body(Buffer* b) {
-    int newsize = b->nalloc * 2;
-    char* body = malloc(newsize);
-    memcpy(body, b->body, b->len);
-    b->body = body;
-    b->nalloc = newsize;
+static void realloc_body(Buffer* addr) {
+    if (addr == NULL || addr->body == NULL)
+        return;
+
+    int new_size = addr->nalloc * 2;
+
+    char* resizedBody = realloc(addr->body, new_size);
+    if (resizedBody == NULL)
+        return;
+
+    addr->body = resizedBody; // assign resized memory
+    addr->nalloc = new_size;  // increase capacity by double
 }
 
 char* buf_body(Buffer* b) {
@@ -37,11 +54,24 @@ void buf_write(Buffer* b, char c) {
         realloc_body(b);
     b->body[b->len++] = c;
 }
+void buf_append(Buffer* _buf, char* _data, int _len) {
+    // Check if the buffer and data pointers are valids
+    if (_buf == NULL || _buf->body == NULL)
+        return;
 
-void buf_append(Buffer* b, char* s, int len) {
-    for (int i = 0; i < len; i++)
-        buf_write(b, s[i]);
+    // Iterate through the data to append
+    for (int i = 0; i < _len; i++) {
+        // Check if the buffer needs resizing to accommodate 
+        // the next character
+        if (_buf->nalloc == (_buf->len + 1))
+            realloc_body(_buf);
+
+        // Write the next character to the buffer and increase
+        // the length by 1
+        _buf->body[_buf->len++] = _data[i];
+    }
 }
+
 
 void buf_printf(Buffer* b, char* fmt, ...) {
     va_list args;
@@ -86,13 +116,13 @@ char* format(char* fmt, ...) {
 
 static char* quote(char c) {
     switch (c) {
-    case '"': return "\\\"";
-    case '\\': return "\\\\";
-    case '\b': return "\\b";
-    case '\f': return "\\f";
-    case '\n': return "\\n";
-    case '\r': return "\\r";
-    case '\t': return "\\t";
+        case '"':  return "\\\"";
+        case '\\': return "\\\\";
+        case '\b': return "\\b";
+        case '\f': return "\\f";
+        case '\n': return "\\n";
+        case '\r': return "\\r";
+        case '\t': return "\\t";
     }
     return NULL;
 }
@@ -104,11 +134,11 @@ static void print(Buffer* b, char c) {
     } else if (isprint(c)) {
         buf_printf(b, "%c", c);
     } else {
-        #ifdef __eir__
+#ifdef __eir__
         buf_printf(b, "\\x%x", c);
-        #else
+#else
         buf_printf(b, "\\x%02x", ((int)c) & 255);
-        #endif
+#endif
     }
 }
 
