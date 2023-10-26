@@ -8,6 +8,36 @@
 
 #define BUFFER_INIT_SIZE 8
 
+// Not used anywhere but serves as an alternative 
+// to the regular make_buffer() function
+int init_new_buffer(Buffer *pBuffer) {
+    // Allocate memory for our new Buffer
+    pBuffer = malloc(sizeof(Buffer));
+    // Check if malloc() returned NULL (meaning it failed)
+    if (pBuffer == NULL) {
+        // Reason for having a label here is due to it allowing us to simply
+        // jump to inside of this if statement, and then assign error value
+        // to the body, nalloc and len variables before returning error code
+        errorlbl:;
+        pBuffer->nalloc = pBuffer->len = -1; // Set both nalloc and len to the value of -1 (Indicating error)
+        pBuffer->body = NULL; // Set the body to NULL (indicating error)
+        return -1;// return error code
+    }
+    // Otherwise we allocate memory (thats initialized to 0)
+    // for our buffer's body
+    pBuffer->body = calloc(1, BUFFER_INIT_SIZE);
+    if (pBuffer->body == NULL) {
+        free(pBuffer); // Free the memory previously allocated for buffer
+        goto errorlbl; // then jump to the part we assign error values to buffer members
+    }
+    // If memory allocation using malloc for the buffer itself,
+    // and calloc for the body both succeeded we finalize by setting
+    // the maximum num of characters (nalloc) to 8, and len (length) to 0
+    pBuffer->nalloc = BUFFER_INIT_SIZE;
+    pBuffer->len    = 0;
+    return 1;// Return success value
+}
+
 Buffer* make_buffer() {
     // Create a new Buffer instance
     Buffer* r = malloc(sizeof(Buffer));
