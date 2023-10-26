@@ -2,7 +2,7 @@
 #pragma once
 #ifndef EIGHTCC_H
 #define EIGHTCC_H
-
+   
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
