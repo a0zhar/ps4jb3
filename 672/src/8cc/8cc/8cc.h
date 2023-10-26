@@ -234,46 +234,109 @@ typedef struct _Node {
         };
     };
 } Node;
-
+// The contents of keword.inc have been added and i made sure to comment all of the enum members
+// to try and improve the readability of them... 
+// Please make a issue if the comments are incorrect....
 enum {
-    AST_LITERAL = 256,
-    AST_LVAR,
-    AST_GVAR,
-    AST_TYPEDEF,
-    AST_FUNCALL,
-    AST_FUNCPTR_CALL,
-    AST_FUNCDESG,
-    AST_FUNC,
-    AST_DECL,
-    AST_INIT,
-    AST_CONV,
-    AST_ADDR,
-    AST_DEREF,
-    AST_IF,
-    AST_TERNARY,
-    AST_DEFAULT,
-    AST_RETURN,
-    AST_COMPOUND_STMT,
-    AST_STRUCT_REF,
-    AST_GOTO,
-    AST_COMPUTED_GOTO,
-    AST_LABEL,
-    OP_SIZEOF,
-    OP_CAST,
-    OP_SHR,
-    OP_SHL,
-    OP_A_SHR,
-    OP_A_SHL,
-    OP_PRE_INC,
-    OP_PRE_DEC,
-    OP_POST_INC,
-    OP_POST_DEC,
-    OP_LABEL_ADDR,
-    #define op(name, _) name,
-    #define keyword(name, x, y) name,
-    #include "keyword.inc"
-    #undef keyword
-    #undef op
+    AST_LITERAL = 256,   // AST Literal node
+    AST_LVAR,            // AST Local Variable node
+    AST_GVAR,            // AST Global Variable node
+    AST_TYPEDEF,         // AST Type Definition node
+    AST_FUNCALL,         // AST Function Call node
+    AST_FUNCPTR_CALL,    // AST Function Pointer Call node
+    AST_FUNCDESG,        // AST Function Designator node
+    AST_FUNC,            // AST Function node
+    AST_DECL,            // AST Declaration node
+    AST_INIT,            // AST Initialization node
+    AST_CONV,            // AST Conversion node
+    AST_ADDR,            // AST Address node
+    AST_DEREF,           // AST Dereference node
+    AST_IF,              // AST If node
+    AST_TERNARY,         // AST Ternary Conditional node
+    AST_DEFAULT,         // AST Default node
+    AST_RETURN,          // AST Return node
+    AST_COMPOUND_STMT,   // AST Compound Statement node
+    AST_STRUCT_REF,      // AST Struct Reference node
+    AST_GOTO,            // AST Goto node
+    AST_COMPUTED_GOTO,   // AST Computed Goto node
+    AST_LABEL,           // AST Label node
+    OP_SIZEOF,           // Sizeof operator
+    OP_CAST,             // Type casting operator
+    OP_SHR,              // Shift Right operator
+    OP_SHL,              // Shift Left operator
+    OP_A_SHR,            // Assignment Shift Right operator
+    OP_A_SHL,            // Assignment Shift Left operator
+    OP_PRE_INC,          // Prefix Increment operator
+    OP_PRE_DEC,          // Prefix Decrement operator
+    OP_POST_INC,         // Postfix Increment operator
+    OP_POST_DEC,         // Postfix Decrement operator
+    OP_LABEL_ADDR,       // Label Address operator
+    OP_ARROW,            // Arrow operator (->)
+    OP_A_ADD,            // Assignment addition operator (+=)
+    OP_A_AND,            // Assignment bitwise AND operator (&=)
+    OP_A_DIV,            // Assignment division operator (/=)
+    OP_A_MOD,            // Assignment modulo operator (%=)
+    OP_A_MUL,            // Assignment multiplication operator (*=)
+    OP_A_OR,             // Assignment bitwise OR operator (|=)
+    OP_A_SAL,            // Assignment left shift operator (<<=)
+    OP_A_SAR,            // Assignment right shift operator (>>=)
+    OP_A_SUB,            // Assignment subtraction operator (-=)
+    OP_A_XOR,            // Assignment bitwise XOR operator (^=)
+    OP_DEC,              // Decrement operator (--)
+    OP_EQ,               // Equality operator (==)
+    OP_GE,               // Greater than or equal to operator (>=)
+    OP_INC,              // Increment operator (++)
+    OP_LE,               // Less than or equal to operator (<=)
+    OP_LOGAND,           // Logical AND operator (&&)
+    OP_LOGOR,            // Logical OR operator (||)
+    OP_NE,               // Not equal operator (!=)
+    OP_SAL,              // Left shift operator (<<)
+    OP_SAR,              // Right shift operator (>>)
+    KALIGNAS,            // _Alignas keyword
+    KALIGNOF,            // _Alignof keyword
+    KAUTO,               // auto keyword
+    KBOOL,               // _Bool keyword
+    KBREAK,              // break keyword
+    KCASE,               // case keyword
+    KCHAR,               // char keyword
+    KCOMPLEX,            // _Complex keyword
+    KCONST,              // const keyword
+    KCONTINUE,           // continue keyword
+    KDEFAULT,            // default keyword
+    KDO,                 // do keyword
+    KDOUBLE,             // double keyword
+    KELSE,               // else keyword
+    KENUM,               // enum keyword
+    KEXTERN,             // extern keyword
+    KFLOAT,              // float keyword
+    KFOR,                // for keyword
+    KGENERIC,            // _Generic keyword
+    KGOTO,               // goto keyword
+    KIF,                 // if keyword
+    KIMAGINARY,          // _Imaginary keyword
+    KINLINE,             // inline keyword
+    KINT,                // int keyword
+    KLONG,               // long keyword
+    KNORETURN,           // _Noreturn keyword
+    KREGISTER,           // register keyword
+    KRESTRICT,           // restrict keyword
+    KRETURN,             // return keyword
+    KHASHHASH,           // ## operator
+    KSHORT,              // short keyword
+    KSIGNED,             // signed keyword
+    KSIZEOF,             // sizeof keyword
+    KSTATIC,             // static keyword
+    KSTATIC_ASSERT,      // _Static_assert keyword
+    KSTRUCT,             // struct keyword
+    KSWITCH,             // switch keyword
+    KELLIPSIS,           // ... ellipsis
+    KTYPEDEF,            // typedef keyword
+    KTYPEOF,             // typeof keyword
+    KUNION,              // union keyword
+    KUNSIGNED,           // unsigned keyword
+    KVOID,               // void keyword
+    KVOLATILE,           // volatile keyword
+    KWHILE,              // while keyword
 };
 
 extern Type* type_void;
