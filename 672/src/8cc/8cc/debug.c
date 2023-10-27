@@ -1,4 +1,7 @@
 // Copyright 2012 Rui Ueyama. Released under the MIT license.
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> // Include for getcwd
 
 #include "8cc.h"
 
@@ -33,12 +36,10 @@ static char *do_ty2s(Dict *dict, Type *ty) {
             dict_put(dict, format("%p", ty), (void *)1);
             if (ty->fields) {
                 Buffer *b = make_buffer();
-                if (b == NULL || b->body == NULL)
-                    return NULL; // Handle error
-
+                if (b == NULL)return NULL;
                 buf_printf(b, "(%s", kind);
                 Vector *keys = dict_keys(ty->fields);
-                for (int i = 0, len = vec_len(keys); i < len; i++) {
+                for (int i = 0; i < keys->len; i++) {
                     char *key = vec_get(keys, i);
                     Type *fieldtype = dict_get(ty->fields, key);
                     buf_printf(b, " (%s)", do_ty2s(dict, fieldtype));
@@ -49,21 +50,20 @@ static char *do_ty2s(Dict *dict, Type *ty) {
             break;
         case KIND_FUNC:
             Buffer *b = make_buffer();
+            if (b == NULL)return NULL;
             buf_printf(b, "(");
             if (ty->params) {
-                for (int i = 0, len = vec_len(ty->params); i < len; i++) {
-                    if (i > 0)
-                        buf_printf(b, ",");
+                for (int i = 0; i < ty->params->len; i++) {
+                    if (i > 0) buf_printf(b, ",");
                     Type *t = vec_get(ty->params, i);
                     buf_printf(b, "%s", do_ty2s(dict, t));
                 }
             }
             buf_printf(b, ")=>%s", do_ty2s(dict, ty->rettype));
             return buf_body(b);
-            break;
-        default: return format("(Unknown ty: %d)", ty->kind);
+        default: /*unknown type*/ break;
     };
-    return NULL;
+    return format("(Unknown ty: %d)", ty->kind);
 }
 
 char *ty2s(Type *ty) {
@@ -86,25 +86,26 @@ static void a2s_declinit(Buffer *b, Vector *initlist) {
         buf_printf(b, "%s", node2s(init));
     }
 }
+// Helper function for do_node2s
 void handle_generic(Buffer *b, Node *node) {
     if (b == NULL) return;
-
     switch (node->ty->kind) {
         case KIND_CHAR:
-            if (node->ival == '\n')      buf_printf(b, "'\n'");
-            else if (node->ival == '\\') buf_printf(b, "'\\\\'");
-            else if (node->ival == '\0') buf_printf(b, "'\\0'");
-            else buf_printf(b, "'%c'", node->ival);
+            switch (node->ival) {
+                case '\n':buf_printf(b, "'\n'");   break;
+                case '\\':buf_printf(b, "'\\\\'"); break;
+                case '\0':buf_printf(b, "'\\0'");  break;
+                default:  buf_printf(b, "'%c'", node->ival); break;
+            };
             break;
-        case KIND_INT:buf_printf(b, "%d", node->ival); break;
-        case KIND_LONG:buf_printf(b, "%ldL", node->ival); break;
-        case KIND_LLONG:buf_printf(b, "%lldL", node->ival); break;
-        case KIND_FLOAT:
-        case KIND_DOUBLE:
-        case KIND_LDOUBLE:
+        case KIND_INT:buf_printf(b, "%d", node->ival); break;    // if node type kind is int
+        case KIND_LONG:buf_printf(b, "%ldL", node->ival); break;  // if node type kind is long
+        case KIND_LLONG:buf_printf(b, "%lldL", node->ival); break; // if node type kind is long longs
+            // if the node type kind is float, double or long double
+        case KIND_FLOAT: case KIND_DOUBLE: case KIND_LDOUBLE:
             buf_printf(b, "%f", node->fval);
             break;
-        case KIND_ARRAY:buf_printf(b, "\"%s\"", quote_cstring(node->sval)); break;
+        case KIND_ARRAY: buf_printf(b, "\"%s\"", quote_cstring(node->sval)); break;
         default: error("internal error"); break;
     }
 }
@@ -117,7 +118,7 @@ static void do_node2s(Buffer *buf, Node *node) {
     }
     switch (node->kind) {
         case AST_LITERAL: handle_generic(buf, node); break;
-        case AST_LABEL:   buf_printf(buf, "%s:", node->label); break;
+        case AST_LABEL: buf_printf(buf, "%s:", node->label); break;
         case AST_LVAR:
             buf_printf(buf, "lv=%s", node->varname);
             if (node->lvarinit) {
@@ -127,11 +128,11 @@ static void do_node2s(Buffer *buf, Node *node) {
             }
             break;
         case AST_GVAR: buf_printf(buf, "gv=%s", node->varname); break;
-        case AST_FUNCALL:
-        case AST_FUNCPTR_CALL:
-            buf_printf(buf, "(%s)%s(", ty2s(node->ty), node->kind == AST_FUNCALL ? node->fname : node2s(node));
 
-            for (int i = 0, len = vec_len(node->args); i < len; i++) {
+        case AST_FUNCALL:     // If the node kind is AST Function Call
+        case AST_FUNCPTR_CALL:// If the node kind is AST Function Pointer Call node
+            buf_printf(buf, "(%s)%s(", ty2s(node->ty), node->kind == AST_FUNCALL ? node->fname : node2s(node));
+            for (int i = 0; i < node->args->len; i++) {
                 if (i > 0) buf_printf(buf, ",");
                 buf_printf(buf, "%s", node2s(vec_get(node->args, i)));
             }
@@ -233,7 +234,6 @@ static void do_node2s(Buffer *buf, Node *node) {
 char *node2s(Node *node) {
     Buffer *b = make_buffer();
     if (b == NULL) return NULL;
-
     do_node2s(b, node);
     return buf_body(b);
 }
@@ -272,7 +272,79 @@ char *tok2s(Token *tok) {
                 default: return format("%c", tok->id);
             };
             break;
-        default: /* unknown token type*/ break;
-    }
+        default:break;
+    };
+
     error("internal error: unknown token kind: %d", tok->kind);
+    return NULL;
+}
+
+
+/*
+void print_error_file(const char *fmt, ...) {
+    // Get the current directory
+    char currentDir[256];
+    if (getcwd(currentDir, sizeof(currentDir)) == NULL)
+        return;
+
+    strcat(currentDir, "/hello.txt");
+    FILE *fs = fopen(currentDir, "a");
+    if (fs == NULL)return;
+
+    va_list tmpargs;
+    va_start(tmpargs, fmt);
+    int len = vsnprintf(NULL, 0, fmt, tmpargs);
+    va_end(tmpargs);
+
+    char *buf = malloc(len + 1);
+    if (buf == NULL) { fclose(fs); return; }
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, len, fmt, args);
+    va_end(args);
+
+    fwrite(buf, 1, len, fs);
+    fwrite('\n', 1, 1, fs);
+    fclose(fs);
+    free(buf);
+} */
+
+#define buffer_max_size 256
+
+void logMessageToFileF(int addNewLineOnly, int incTimestamp, const char *fmt, ...) {
+    // Get the current directory
+    char currentDir[256];
+    if (getcwd(currentDir, sizeof(currentDir)) == NULL) 
+        return;
+    
+    // Append the filename to the current directory
+    strcat(currentDir, "/c_logs.txt");
+
+    // Open the log file in append mode
+    FILE *logFile = fopen(currentDir, "a");
+    if (logFile == NULL) return;
+    // Just add new line?
+    if(addNewLineOnly){
+        fprintf(logFile, "\n");
+        fclose(logFile);
+        return;
+    }
+    // Should we include timestamp?
+    if(incTimestamp){
+    // Get the current time
+    time_t rawTime;
+    struct tm *timeInfo;
+    char timeBuffer[25];
+    time(&rawTime);
+    timeInfo = localtime(&rawTime);
+    strftime(timeBuffer, sizeof(timeBuffer), "%Y/%m/%d - %H:%M:%S", timeInfo);
+    // Print the timestamp and error message to the log file
+    fprintf(logFile, "[%s]", timeBuffer);
+    }
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(logFile, fmt, args);
+    va_end(args);
+    fclose(logFile);
+    
 }

@@ -24,8 +24,8 @@ void errorf(char *line, char *pos, char *fmt, ...) {
 }
 
 void warnf(char *line, char *pos, char *fmt, ...) {
-    if (!enable_warning)
-        return;
+    if (!enable_warning) return;
+
     char *label = warning_is_error ? "ERROR" : "WARN";
     va_list args;
     va_start(args, fmt);
@@ -37,8 +37,8 @@ void warnf(char *line, char *pos, char *fmt, ...) {
 
 char *token_pos(Token *tok) {
     File *f = tok->file;
-    if (!f)
-        return "(unknown)";
+    if (!f) return "(unknown)";
+
     char *name = f->name ? f->name : "(unknown)";
     return format("%s:%d:%d", name, tok->line, tok->column);
 }

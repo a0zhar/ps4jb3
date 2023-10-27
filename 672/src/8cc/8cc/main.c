@@ -21,28 +21,28 @@ static Vector *tmpfiles = &EMPTY_VECTOR;
 #ifndef __eir__
 static void usage(int exitcode) {
     fprintf(exitcode ? stderr : stdout,
-            "Usage: 8cc [ -E ][ -a ] [ -h ] <file>\n\n"
-            "\n"
-            "  -I<path>          add to include path\n"
-            "  -E                print preprocessed source code\n"
-            "  -D name           Predefine name as a macro\n"
-            "  -D name=def\n"
-            "  -S                Stop before assembly (default)\n"
-            "  -c                Do not run linker (default)\n"
-            "  -U name           Undefine name\n"
-            "  -fdump-ast        print AST\n"
-            "  -fdump-stack      Print stacktrace\n"
-            "  -fno-dump-source  Do not emit source code as assembly comment\n"
-            "  -o filename       Output to the specified file\n"
-            "  -g                Do nothing at this moment\n"
-            "  -Wall             Enable all warnings\n"
-            "  -Werror           Make all warnings into errors\n"
-            "  -O<number>        Does nothing at this moment\n"
-            "  -m64              Output 64-bit code (default)\n"
-            "  -w                Disable all warnings\n"
-            "  -h                print this help\n"
-            "\n"
-            "One of -a, -c, -E or -S must be specified.\n\n");
+        "Usage: 8cc [ -E ][ -a ] [ -h ] <file>\n\n"
+        "\n"
+        "  -I<path>          add to include path\n"
+        "  -E                print preprocessed source code\n"
+        "  -D name           Predefine name as a macro\n"
+        "  -D name=def\n"
+        "  -S                Stop before assembly (default)\n"
+        "  -c                Do not run linker (default)\n"
+        "  -U name           Undefine name\n"
+        "  -fdump-ast        print AST\n"
+        "  -fdump-stack      Print stacktrace\n"
+        "  -fno-dump-source  Do not emit source code as assembly comment\n"
+        "  -o filename       Output to the specified file\n"
+        "  -g                Do nothing at this moment\n"
+        "  -Wall             Enable all warnings\n"
+        "  -Werror           Make all warnings into errors\n"
+        "  -O<number>        Does nothing at this moment\n"
+        "  -m64              Output 64-bit code (default)\n"
+        "  -w                Disable all warnings\n"
+        "  -h                print this help\n"
+        "\n"
+        "One of -a, -c, -E or -S must be specified.\n\n");
     exit(exitcode);
 }
 
@@ -111,31 +111,32 @@ static void parseopt(int argc, char **argv) {
         if (opt == -1)
             break;
         switch (opt) {
-        case 'I': add_include_path(optarg); break;
-        case 'E': cpponly = true; break;
-        case 'D': {
-            char *p = strchr(optarg, '=');
-            if (p)
-                *p = ' ';
-            buf_printf(cppdefs, "#define %s\n", optarg);
-            break;
-        }
-        case 'O': break;
-        case 'S': dumpasm = true; break;
-        case 'U':
-            buf_printf(cppdefs, "#undef %s\n", optarg);
-            break;
-        case 'W': parse_warnings_arg(optarg); break;
-        case 'c': dontlink = true; break;
-        case 'f': parse_f_arg(optarg); break;
-        case 'm': parse_m_arg(optarg); break;
-        case 'g': break;
-        case 'o': outfile = optarg; break;
-        case 'w': enable_warning = false; break;
-        case 'h':
-            usage(0);
-        default:
-            usage(1);
+            case 'I': add_include_path(optarg); break;
+            case 'E': cpponly = true; break;
+            case 'D':
+            {
+                char *p = strchr(optarg, '=');
+                if (p)
+                    *p = ' ';
+                buf_printf(cppdefs, "#define %s\n", optarg);
+                break;
+            }
+            case 'O': break;
+            case 'S': dumpasm = true; break;
+            case 'U':
+                buf_printf(cppdefs, "#undef %s\n", optarg);
+                break;
+            case 'W': parse_warnings_arg(optarg); break;
+            case 'c': dontlink = true; break;
+            case 'f': parse_f_arg(optarg); break;
+            case 'm': parse_m_arg(optarg); break;
+            case 'g': break;
+            case 'o': outfile = optarg; break;
+            case 'w': enable_warning = false; break;
+            case 'h':
+                usage(0);
+            default:
+                usage(1);
         }
     }
     if (optind != argc - 1)
@@ -167,22 +168,22 @@ static void preprocess() {
 }
 
 int main(int argc, char **argv) {
-#ifdef __eir__
+    #ifdef __eir__
     infile = "-";
-#else
+    #else
     setbuf(stdout, NULL);
     if (atexit(delete_temp_files))
         perror("atexit");
     parseopt(argc, argv);
-#endif
+    #endif
     lex_init(infile);
     cpp_init();
     parse_init();
-#ifndef __eir__
+    #ifndef __eir__
     set_output_file(open_asmfile());
     if (buf_len(cppdefs) > 0)
         read_from_string(buf_body(cppdefs));
-#endif
+    #endif
 
     if (cpponly)
         preprocess();
@@ -198,7 +199,7 @@ int main(int argc, char **argv) {
 
     close_output_file();
 
-#ifndef __eir__
+    #ifndef __eir__
     if (!dumpast && !dumpasm) {
         if (!outfile)
             outfile = replace_suffix(base(infile), 'o');
@@ -213,6 +214,6 @@ int main(int argc, char **argv) {
         if (status < 0)
             error("as failed");
     }
-#endif
+    #endif
     return 0;
 }

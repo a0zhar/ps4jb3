@@ -27,35 +27,48 @@
 static Vector *files = &EMPTY_VECTOR;
 static Vector *stashed = &EMPTY_VECTOR;
 
-File *make_file(FILE *file, char *name) {
-    File *r = calloc(1, sizeof(File));
-    r->file = file;
-    r->name = name;
-    r->line = 1;
-    r->column = 1;
-#ifdef __eir__
+File *make_file(FILE *fs, char *name) {
+    File *newFile = calloc(1, sizeof(File));
+    if (newFile == NULL){
+        simplelogging("make_file() error, calloc failed!");
+        return NULL;
+    }
+    newFile->file = fs;
+    newFile->name = name;
+    newFile->column = 1;
+    newFile->line = 1;
+
+    // Get the last modified time of the file
+    #ifdef __eir__
     r->mtime = 0;
-#else
+    #else
     struct stat st;
-    if (fstat(fileno(file), &st) == -1)
+    if (fstat(fileno(fs), &st) == -1) {
+        simplelogging("make_file() error! fstat failed!");
         error("fstat failed: %s", strerror(errno));
-    r->mtime = st.st_mtime;
-#endif
-    return r;
+    } else newFile->mtime = st.st_mtime;
+    #endif
+
+    simplelogging("make_file() success");
+    return newFile;
 }
 
 File *make_file_string(char *s) {
-    File *r = calloc(1, sizeof(File));
-    r->line = 1;
-    r->column = 1;
-    r->p = s;
-    return r;
+    File *newSFile = calloc(1, sizeof(File));
+    if (newSFile == NULL) {
+        simplelogging("make_file_string() error, calloc failed");
+        return NULL;
+    }
+    newSFile->line = 1;
+    newSFile->column = 1;
+    newSFile->p = s;
+    return newSFile;
 }
 
 static void close_file(File *f) {
-    if (f->file)
-        fclose(f->file);
+    if (f->file) fclose(f->file);
 }
+
 
 static int readc_file(File *f) {
     int c = getc(f->file);
@@ -71,6 +84,19 @@ static int readc_file(File *f) {
     return c;
 }
 
+static int readcharacterFromFile(File *f) {
+    int c = getc(f->file);
+    if (c == EOF) {
+        c = (f->last == '\n' || f->last == EOF) ? EOF : '\n';
+    } else if (c == '\r') {
+        int c2 = getc(f->file);
+        if (c2 != '\n')
+            ungetc(c2, f->file);
+        c = '\n';
+    }
+    f->last = c;
+    return c;
+}
 static int readc_string(File *f) {
     int c;
     if (*f->p == '\0') {
@@ -90,13 +116,11 @@ static int readc_string(File *f) {
 static int file_get() {
     File *f = vec_tail(files);
     int c;
-    if (f->buflen > 0) {
-        c = f->buf[--f->buflen];
-    } else if (f->file) {
-        c = readc_file(f);
-    } else {
-        c = readc_string(f);
-    }
+
+    if (f->buflen > 0) c = f->buf[--f->buflen];
+    else if (f->file)  c = readc_file(f);
+    else               c = readc_string(f);
+
     if (c == '\n') {
         f->line++;
         f->column = 1;

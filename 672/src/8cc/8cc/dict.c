@@ -5,6 +5,10 @@
 
 Dict *make_dict() {
     Dict *r = malloc(sizeof(Dict));
+    if (r == NULL) {
+        simplelogging("malloc failed");
+        return NULL;
+    }
     r->map = make_map();
     r->key = make_vector();
     return r;

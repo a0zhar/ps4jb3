@@ -66,7 +66,10 @@ static Token *read_expand(void);
 
 static CondIncl *make_cond_incl(bool wastrue) {
     CondIncl *r = calloc(1, sizeof(CondIncl));
-    if (r == NULL) return NULL;
+    if (r == NULL) {
+        simplelogging("calloc failed");
+        return NULL;
+    }
     r->ctx = IN_THEN;
     r->wastrue = wastrue;
     return r;
@@ -74,7 +77,10 @@ static CondIncl *make_cond_incl(bool wastrue) {
 
 static Macro *make_macro(Macro *tmpl) {
     Macro *r = calloc(1, sizeof(Macro));
-    if (r == NULL) return NULL;
+    if (r == NULL) {
+        simplelogging("calloc failed");
+        return NULL;
+    }
     *r = *tmpl;
     return r;
 }
@@ -107,7 +113,10 @@ static Macro *make_special_macro(SpecialMacroHandler *fn) {
 
 static Token *make_macro_token(int position, bool is_vararg) {
     Token *r = calloc(1, sizeof(Token));
-    if (r == NULL) return NULL;
+    if (r == NULL) {
+        simplelogging("calloc failed");
+        return NULL;
+    }
     r->kind = TMACRO_PARAM;
     r->is_vararg = is_vararg;
     r->hideset = NULL;
@@ -118,10 +127,13 @@ static Token *make_macro_token(int position, bool is_vararg) {
 }
 
 static Token *copy_token(Token *tok) {
-    Token *srcTok = malloc(sizeof(Token));
-    if (srcTok == NULL) return NULL;
-    *srcTok = *tok;
-    return srcTok;
+    Token *r = malloc(sizeof(Token));
+    if (r == NULL) {
+        simplelogging("malloc() failed");
+        return NULL;
+    }
+    *r = *tok;
+    return r;
 }
 
 static void cpp_expect(char id) {
@@ -197,6 +209,7 @@ static Vector *read_one_arg(Token *ident, bool *end, bool readall) {
             level++;
         if (is_keyword(tok, ')'))
             level--;
+
         // C11 6.10.3p10: Within the macro argument list,
         // newline is considered a normal whitespace character.
         // I don't know why the standard specifies such a minor detail,

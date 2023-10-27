@@ -1,7 +1,4 @@
-// Copyright 2012 Rui Ueyama. Released under the MIT license.
-
 #include <ctype.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include "8cc.h"
@@ -13,7 +10,7 @@
 int init_new_buffer(Buffer *pBuffer) {
     // Allocate memory for our new Buffer
     pBuffer = malloc(sizeof(Buffer));
-    
+
     // Check if malloc() returned NULL, indicating failure
     if (pBuffer == NULL) {
         // The reason for having a label here is to allow us to simply
@@ -24,130 +21,168 @@ int init_new_buffer(Buffer *pBuffer) {
         pBuffer->body = NULL; // Set the body to NULL (indicating an error)
         return -1; // Return an error code
     }
-    
+
     // Otherwise, we allocate memory (initialized to 0) for our buffer's body
     pBuffer->body = calloc(1, BUFFER_INIT_SIZE);
     if (pBuffer->body == NULL) {
         free(pBuffer); // Free the memory previously allocated for the buffer
         goto errorlbl; // Then jump to the part where we assign error values to buffer members
     }
-    
+
     // If memory allocation using malloc for the buffer itself
     // and calloc for the body both succeeded, we finalize by setting
     // the maximum number of characters (nalloc) to 8 and len (length) to 0.
     pBuffer->nalloc = BUFFER_INIT_SIZE;
-    pBuffer->len    = 0;
+    pBuffer->len = 0;
     return 1; // Return a success value
 }
 
 
-Buffer* make_buffer() {
+Buffer *make_buffer() {
+    simplelogging("making buffer");
     // Create a new Buffer instance
-    Buffer* r = malloc(sizeof(Buffer));
-    if (r == NULL) return NULL;
-
-    // Allocate memory for the body of buffer
-    r->body = malloc(BUFFER_INIT_SIZE);
-    if (r->body == NULL) {
-        free(r);
+    Buffer *buf = malloc(sizeof(Buffer));
+    if (buf == NULL) {
+        simplelogging("malloc failed");
         return NULL;
     }
-    // Initialize the nalloc (number of allocated ?) to the value used when allocating body
-    // and the len to 0
-    r->nalloc = BUFFER_INIT_SIZE;
-    r->len = 0;
-    // Return that buffer
-    return r;
+    // Allocate memory for the body of buffer
+    char *body = malloc(BUFFER_INIT_SIZE);
+    if (body == NULL) {
+        simplelogging("Failed to allocate memory for the body");
+        free(buf);// free memory allocated for buf
+        return NULL;
+    }
+    buf->body = body;
+    buf->nalloc = BUFFER_INIT_SIZE;
+    buf->len = 0;
+    return buf;
 }
 
-static void realloc_body(Buffer* addr) {
-    if (addr == NULL || addr->body == NULL)
-        return;
+int resizeBuffer(Buffer *buf) {
+    if (buf == NULL || buf->body == NULL) {
+        simplelogging("buffer or its body passed is NULL");
+        return -1;
+    }
 
-    int new_size = addr->nalloc * 2;
+    char *newbody = realloc(buf->body, buf->nalloc * 2);
+    if (newbody == NULL) {
+        simplelogging("realloc failed!");
+        return -1;
+    }
 
-    char* resizedBody = realloc(addr->body, new_size);
-    if (resizedBody == NULL)
-        return;
-
-    addr->body = resizedBody; // assign resized memory
-    addr->nalloc = new_size;  // increase capacity by double
+    buf->body = newbody;  // Assign the new memory (thats twice as big as previous)
+    buf->nalloc *= 2;     // Double capacity
+    return 1;
 }
 
-char* buf_body(Buffer* b) {
+char *buf_body(Buffer *b) {
     return b->body;
 }
 
-int buf_len(Buffer* b) {
+int buf_len(Buffer *b) {
     return b->len;
 }
 
-void buf_write(Buffer* b, char c) {
-    if (b->nalloc == (b->len + 1))
-        realloc_body(b);
+// Writes a single character to the body of a buffer
+void buf_write(Buffer *b, char c) {
+    if (b == NULL || b->body == NULL) {
+        simplelogging("error! buffer or it's body is NULL");
+        return;
+    }
+    // If max capacity is equal to current length of the 
+    // body + 1 additionall character
+    if (b->nalloc <= b->len + 1)
+        if (resizeBuffer(b) == -1)
+            return;
+
+    // copy character into body
     b->body[b->len++] = c;
 }
-void buf_append(Buffer* _buf, char* _data, int _len) {
-    // Check if the buffer and data pointers are valids
-    if (_buf == NULL || _buf->body == NULL)
+
+void buf_append(Buffer *b, char *data, int len) {
+    if (b == NULL || b->body == NULL) {
+        simplelogging("error! buffer or it's body is NULL");
         return;
-
-    // Iterate through the data to append
-    for (int i = 0; i < _len; i++) {
-        // Check if the buffer needs resizing to accommodate 
-        // the next character
-        if (_buf->nalloc == (_buf->len + 1))
-            realloc_body(_buf);
-
-        // Write the next character to the buffer and increase
-        // the length by 1
-        _buf->body[_buf->len++] = _data[i];
     }
+
+    // Resize the memory until new data fits
+    // original cond: avail <= written
+    while (b->nalloc <= b->len + len) {
+        if (resizeBuffer(b) == -1)
+            return;
+    }
+
+    // Copy all data at once
+    memcpy(b->body + b->len, data, len);
+    b->len += len; //update length
 }
 
 
-void buf_printf(Buffer* b, char* fmt, ...) {
+void buf_printf(Buffer *b, char *fmt, ...) {
+    if (b == NULL) {
+        simplelogging("buff, or it's body is NULL");
+        return;
+    }
+    va_list tmpargs;
+    va_start(tmpargs, fmt);
+    int fmtlen = vsnprintf(NULL, 0, fmt, tmpargs) + 1;
+    va_end(tmpargs);
+
+    // Resize the memory until new data fits
+    // original cond: avail <= written
+    while ((b->nalloc - b->len) <= fmtlen)
+        if (resizeBuffer(b) == -1)
+            return;
+
     va_list args;
-    for (;;) {
-        int avail = b->nalloc - b->len;
-        va_start(args, fmt);
-        int written = vsnprintf(b->body + b->len, avail, fmt, args);
-        va_end(args);
-        if (avail <= written) {
-            realloc_body(b);
-            continue;
-        }
-        b->len += written;
-        return;
-    }
+    va_start(args, fmt);
+    int written = vsnprintf(b->body + b->len, fmtlen, fmt, args);
+    va_end(args);
+    b->len += written;
 }
 
-char* vformat(char* fmt, va_list ap) {
-    Buffer* b = make_buffer();
+char *vformat(char *fmt, va_list ap) {
+    Buffer *b = make_buffer();
+    if (b == NULL) {
+        simplelogging("make_buffer() failed!");
+        return NULL;
+    }
+
+    va_list tmpargs;
+    va_copy(tmpargs, ap);
+    // Obtain the length of our string after being formatted
+    int fmtlen = vsnprintf(NULL, 0, fmt, tmpargs) + 1;
+    va_end(tmpargs);
+
+    // Resize the memory until new data fits
+    // original cond: avail <= written
+    while ((b->nalloc - b->len) <= fmtlen)
+        if (resizeBuffer(b) == -1)
+            return NULL;
+
     va_list aq;
-    for (;;) {
-        int avail = b->nalloc - b->len;
-        va_copy(aq, ap);
-        int written = vsnprintf(b->body + b->len, avail, fmt, aq);
-        va_end(aq);
-        if (avail <= written) {
-            realloc_body(b);
-            continue;
-        }
-        b->len += written;
-        return buf_body(b);
-    }
+    va_copy(aq, ap);
+    // copy formatted string into the body of our buffer.
+    int written = vsnprintf(b->body + b->len, fmtlen, fmt, ap);
+    va_end(aq);
+    b->len += written;
+    return buf_body(b);
 }
-
-char* format(char* fmt, ...) {
+// issues with this is that it creates a new buffer instance
+// and returns the body of that buffer instance, after copying
+// formatted string to it... 
+// But the buffer isnt deallocate, and can't be deallocated 
+// using current format implementation
+char *format(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
-    char* r = vformat(fmt, ap);
+    char *r = vformat(fmt, ap);
     va_end(ap);
     return r;
 }
 
-static char* quote(char c) {
+static char *quote(char c) {
     switch (c) {
         case '"':  return "\\\"";
         case '\\': return "\\\\";
@@ -156,40 +191,51 @@ static char* quote(char c) {
         case '\n': return "\\n";
         case '\r': return "\\r";
         case '\t': return "\\t";
-    }
+        default: /* unknown/none of above*/ break;
+    };
     return NULL;
 }
 
-static void print(Buffer* b, char c) {
-    char* q = quote(c);
+static void print(Buffer *b, char c) {
+    char *q = quote(c);
     if (q) {
         buf_printf(b, "%s", q);
     } else if (isprint(c)) {
         buf_printf(b, "%c", c);
     } else {
-#ifdef __eir__
+        #ifdef __eir__
         buf_printf(b, "\\x%x", c);
-#else
+        #else
         buf_printf(b, "\\x%02x", ((int)c) & 255);
-#endif
+        #endif
     }
 }
 
-char* quote_cstring(char* p) {
-    Buffer* b = make_buffer();
-    while (*p)
-        print(b, *p++);
+char *quote_cstring(char *p) {
+    Buffer *b = make_buffer();
+    if (b == NULL) {
+        simplelogging("make_buffer() failed!");
+        return NULL;
+    }
+
+    while (*p) print(b, *p++);
+
     return buf_body(b);
 }
 
-char* quote_cstring_len(char* p, int len) {
-    Buffer* b = make_buffer();
+char *quote_cstring_len(char *p, int len) {
+    Buffer *b = make_buffer();
+    if (b == NULL) {
+        simplelogging("make_buffer() failed!");
+        return NULL;
+    }
     for (int i = 0; i < len; i++)
         print(b, p[i]);
+
     return buf_body(b);
 }
 
-char* quote_char(char c) {
+char *quote_char(char c) {
     if (c == '\\') return "\\\\";
     if (c == '\'') return "\\'";
     return format("%c", c);
