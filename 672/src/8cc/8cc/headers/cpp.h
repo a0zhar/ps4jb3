@@ -1,4 +1,6 @@
 #pragma once
+#ifndef _CPP_H
+#define _CPP_H
 #include "../8cc.h"
 void read_from_string(char* buf);
 bool is_ident(Token* tok, char* s);
@@ -8,3 +10,4 @@ void init_now(void);
 void cpp_init(void);
 Token* peek_token(void);
 Token* read_token(void);
+#endif

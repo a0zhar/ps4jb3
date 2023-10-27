@@ -1,4 +1,6 @@
 #pragma once
+#ifndef _PARSE_H
+#define _PARSE_H
 #include "../8cc.h"
 char* make_tempname(void);
 char* make_label(void);
@@ -10,3 +12,4 @@ Node* read_expr(void);
 Vector* read_toplevels(void);
 void parse_init(void);
 char* fullpath(char* path);
+#endif

@@ -1,4 +1,6 @@
 #pragma once
+#ifndef _BUFFER_H
+#define _BUFFER_H
 #include "../8cc.h"
 Buffer* make_buffer(void);
 char* buf_body(Buffer* b);
@@ -11,3 +13,4 @@ char* format(char* fmt, ...);
 char* quote_cstring(char* p);
 char* quote_cstring_len(char* p, int len);
 char* quote_char(char c);
+#endif
