@@ -1,8 +1,9 @@
-// Copyright 2012 Rui Ueyama. Released under the MIT license.
+// Copyright 2012 Rui Ueyama.  
+// Released under the MIT license.
+// MODIFIED BY A0ZHAR
 #pragma once
 #ifndef EIGHTCC_H
 #define EIGHTCC_H
-   
 #include <assert.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -10,6 +11,24 @@
 #include <stdio.h>
 #include <stdnoreturn.h>
 #include <time.h>
+
+// UNTIL I've fixed the issue with nlprintf causing SyntaxError when compiling either netcat.c or jb.c
+// this should be set to 0... If you want to enable printing of error msg then set it to 1
+#define SHOULD_DEBUG 0 
+
+#if SHOULD_DEBUG
+// This is used to print out messages which looks like:
+// [8CC] <function where this macro is called from>(): error! - <error msg ...>
+#define nlprintf_e(...) \
+        printf("\n[8CC] %s(): error! - ", __FUNCTION__);\
+        printf(__VA_ARGS__)
+
+// This is same as printf, however this prints the msg on a new line each time
+#define nlprintf(...) printf("\n[8CC] "__VA_ARGS__)
+#else
+#define nlprintf_e(...)
+#define nlprintf(...)
+#endif
 
 // Token Type's
 #define TIDENT        0 // (Token Type) Identifier token
